@@ -1,0 +1,390 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252"><style type="text/css" media="screen">
+/*
+.nodes-image {
+	margin:-100;
+}
+*/	
+@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
+
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
+.listingblock {margin:8px;}
+.pull-bottom {position:relative;bottom:1em;}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.admonitionblock.note.speaker { display:none; }
+</style>
+<style type="text/css" media="screen">
+#editor.maximize-editor .CodeMirror-code { font-size:24px; line-height:26px; }
+</style>
+</head><body><article class="guide" ng-controller="AdLibDataController">
+  <carousel class="deck container-fluid">
+    <!--slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>Flight as a first class citizen</h3>
+        <p class="lead">Information</p>
+			<!dl>
+				
+				
+				
+				
+				
+			</dl>
+		</div>
+      <div class="col-sm-9">
+        <figure>
+          <img style="width:300px" src=""/>
+        </figure>
+      </div>
+    </slide-->
+    
+
+
+   <h4>Flight as a first class citizen</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Flight as a first class citizen</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>In this section we’re going to profile the query from the end of the last section and see what’s going on under the covers.</p>
+</div>
+<div class="paragraph">
+<p>We’ll then refactor the model to introduce <code>Flight</code> as a first class citizen in our domain to make it easier to write queries centered around flights.</p>
+</div>
+<div class="paragraph">
+<p>Before we profile our query a quick explanation:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="02_flight_ficheiros/slides.jpg" alt="slides">
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Profiling flight <code>WN 1016</code></h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>We can profile our query by prefixing it with the <code>PROFILE</code> keyword:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->PROFILE
+MATCH  (origin:Airport)-[connection:CONNECTED_TO]-&gt;(destination:Airport)
+WHERE connection.airline = "WN" AND connection.flightNumber = "1016"
+RETURN origin.code, destination.code, connection.date, connection.departure, connection.arrival<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What we get back is an execution plan which describes the Cypher operators used to execute this query.
+You can read more about these in the <a href="https://neo4j.com/docs/developer-manual/current/cypher/#execution-plans">developer manual</a></p>
+</div>
+<div class="paragraph">
+<p>In this one the query starts with a <code>NodeByLabelScan</code> on the <code>:Airport</code> label, which means that we first scanned all the airports.
+Next we followed the <code>FLIGHT</code> relationship to <code>origin</code> airports, and we can see from the <code>estimated rows</code> count that we followed 1,000 of these.</p>
+</div>
+<div class="paragraph">
+<p>That’s a lot of flights!</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Scanning all the flights</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>In fact we actually looked at every single flight, which we can confirm by executing the following query:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH ()-[:CONNECTED_TO]-&gt;()
+RETURN COUNT(*)<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So it’s clear that our model isn’t optimal - we’re doing far too much
+ work just to find the destinations and origins of one flight.</p>
+</div>
+<div class="paragraph">
+<p>It’s time to refactor the model.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Introducing flight as a first class citizen</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>Having convinced ourselves that our current model is quite inefficient, we’re going to refactor the model.</p>
+</div>
+<div class="paragraph">
+<p>Let’s quick look at how we’re going to evolve the model:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="02_flight_ficheiros/slides.jpg" alt="slides">
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Ensuring flight uniqueness</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>When we refactor the model we want to make sure we only create each flight once.</p>
+</div>
+<div class="paragraph">
+<p>Neo4j allows us to create unique constraints to ensure uniqueness 
+across a label/property pair, but at the moment we can only create 
+constraints on single properties.
+We want to ensure uniqueness across several properties so we’ll combine 
+those together into a single dummy property.</p>
+</div>
+<div class="paragraph">
+<p>The combination of airline, flight number, and date makes a flight 
+unique.
+As we saw in the previous section, however, some flights can have 
+multiple legs so we’ll need to consider departure and arrival airports 
+as well.
+We’ll create a <code>flightId</code> with this format: <code>{airline}{flightNumber}{year}-{month}-{day}_{origin}_{destination}</code></p>
+</div>
+<div class="paragraph">
+<p>Run the following query to create a unique constraint on the <code>Flight/id</code> label/property pair:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE CONSTRAINT ON (f:Flight)
+ASSERT f.id IS UNIQUE<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Ok, now let the refactoring begin.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Creating flights</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>We’re now ready to create <code>Flight</code> nodes.
+Remember this is the model we’re going to end up at:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="02_flight_ficheiros/flight_first_class.png" alt="flight first class">
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Creating flights</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>Run the following query to create <code>Flight</code> nodes for every <code>CONNECTED_TO</code> relationship:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (origin:Airport)-[connection:CONNECTED_TO]-&gt;(destination:Airport)
+MERGE (newFlight:Flight { id: connection.airline + connection.flightNumber + "_" + connection.date +  "_" + origin.code + "_" + destination.code }   )
+ON CREATE SET newFlight.date = connection.date,
+              newFlight.airline = connection.airline,
+              newFlight.number = connection.flightNumber,
+              newFlight.departure = connection.departure,
+              newFlight.arrival = connection.arrival
+MERGE (origin)&lt;-[:ORIGIN]-(newFlight)
+MERGE (newFlight)-[:DESTINATION]-&gt;(destination)<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This query:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>finds all <code>(origin, connection, destination)</code> paths</p>
+</li>
+<li>
+<p>creates a <code>Flight</code> node if one doesn’t already exist</p>
+</li>
+<li>
+<p>creates an <code>ORIGIN</code> relationship to the origin airport and a <code>DESTINATION</code> relationship to the destination airport</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Now we can try our earlier query again.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Find all the flights for flight number <code>WN 1016</code></h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>First let’s create an index on <code>(Flight, number)</code> so that we can quickly find the appropriate flights.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :Flight(number)<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now we’re ready to find those flights!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (origin)&lt;-[:ORIGIN]-(flight:Flight)-[:DESTINATION]-&gt;(destination)
+WHERE flight.airline = "WN" AND flight.number = "1016"
+RETURN origin, destination, flight<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Before we delete the <code>CONNECTED_TO</code> relationship we should profile the two versions of the query to see whether our refactoring has improved things.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Exercise: Profiling the two flight models</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>Run the following query to profile the new version of the query to see if we’ve improved things:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->PROFILE
+MATCH (origin)&lt;-[:ORIGIN]-(flight:Flight)-[:DESTINATION]-&gt;(destination)
+WHERE flight.airline = "WN" AND flight.number = "1016"
+RETURN origin, destination, flight<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For reference, you can re-run the profile on our other query as well:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->PROFILE
+MATCH (origin:Airport)-[flight:CONNECTED_TO]-&gt;(destination:Airport)
+WHERE flight.airline = "WN" AND flight.flightNumber = "1016"
+RETURN origin, destination, flight<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What do you notice?</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Answer: Profiling the two flight models</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>It looks like a good refactoring - we can see by comparing the <code>db hits</code> that our new query does much less work (6 db hits vs. 1,062 db hits).</p>
+</div>
+<div class="paragraph">
+<p>This is because we no longer have to <strong>scan every connection</strong> looking for ones which have an <code>airline</code> of <code>WN</code> and a <code>number</code> of <code>1016</code>.
+Instead we’re able to use the <code>:Flight(number)</code> index to find the flights we’re interested in and only determine the origins and destinations for those flights.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Deleting the <code>CONNECTED_TO</code> relationship</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>Since the <code>CONNECTED_TO</code> relationship between airports doesn’t seem to be much use anymore let’s delete it.</p>
+</div>
+<div class="paragraph">
+<p>Run the following query:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher" class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH ()-[connection:CONNECTED_TO]-&gt;()
+DELETE connection<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Next Step</h3>
+    <br>
+    <div>
+      <div class="paragraph">
+<p>In the next section we’re going to write some more queries against the dataset, but this time with a different user in mind.</p>
+</div>
+<div class="paragraph">
+<p><a play-topic="http://guides.neo4j.com/modeling_airports/03_flight_booking.html">Flight booking</a></p>
+</div>
+	</div>
+  </div>
+</slide>
+  </carousel>
+</article></body></html>

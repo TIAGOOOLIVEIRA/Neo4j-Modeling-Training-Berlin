@@ -1,0 +1,75 @@
+http://guides.neo4j.com/modeling_airports/01_flight_dataset.html
+http://guides.neo4j.com/modeling_airports/02_flight.html
+http://guides.neo4j.com/modeling_airports/03_flight_booking.html
+
+MATCH (origin: Airport)-[connection:
+
+CREATE CONSTRAINT ON (f:Flight) ASSERT f.id IS UNIQUE
+
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs --volume=/media/tiagoooliveira/sda4/databases/neo4j/plugins:/plugins -v /media/tiagoooliveira/sda4/databases/neo4j/import:/var/lib/neo4j/import neo4j:3.2.5
+
+
+:schema
+
+Indexing by nodes, not by relationships
+
+:sysinfo
+
+MATCH ()-[connection:CONNECTED_TO]->() DELETE connection
+
+In CYpher
+	:play http://guides.neo4j.com/modeling_sandbox/04_specific_relationship_types.html
+
+Monitoring
+	:queries
+	CALL dbms.queryJmx
+
+
+MATCH (:Process)
+RETURN COUNT(*)
+
+:history
+
+
+call apoc.periodic.commit('
+  MATCH (flight:Process)
+  WITH flight LIMIT {limit}
+
+  MATCH (origin:Airport)<-[:ORIGIN]-(flight)-[:DESTINATION]->(destination:Airport)
+
+  MERGE (originAirportDay:AirportDay {id: origin.code + "_" + flight.date})
+  ON CREATE SET originAirportDay.date = flight.date
+
+  MERGE (destinationAirportDay:AirportDay {id: destination.code + "_" + flight.date})
+  ON CREATE SET destinationAirportDay.date = flight.date
+
+  MERGE (origin)-[:HAS_DAY]->(originAirportDay)
+  MERGE (originAirportDay)<-[:ORIGIN]-(flight)
+  MERGE (flight)-[:DESTINATION]-(destinationAirportDay)
+  MERGE (destination)-[:HAS_DAY]->(destinationAirportDay)
+
+  REMOVE flight:Process
+  RETURN COUNT(*)
+',{limit:500})
+
+		Neo.ClientError.Procedure.ProcedureRegistrationFailed
+
+		apoc.periodic.commit is unavailable because it is sandboxed and has dependencies outside of the sandbox. Sandboxing is controlled by the dbms.security.procedures.unrestricted setting. Only unrestrict procedures you can trust with access to database internals.
+
+
+
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs --volume=/media/tiagoooliveira/sda4/databases/neo4j/plugins:/plugins -v /media/tiagoooliveira/sda4/databases/neo4j/import:/var/lib/neo4j/import -e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* -e NEO4J_dbms_memory_heap_maxSize=4g neo4j:3.2.5
+
+
+
+https://github.com/h-omer/neo4j-versioner-core
+
+Transaction Handlers Java
+	https://neo4j.com/docs/java-reference/current/javadocs/org/neo4j/graphdb/event/TransactionEventHandler.html
+
+	for versioning automaticaly
+
+
+	https://github.com/dmontag/neo4j-transaction-event-handler-template
+
+https://github.com/h-omer/neo4j-versioner-core

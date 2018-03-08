@@ -1,0 +1,160 @@
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=$Home/neo4j/data:/data --volume=$Home/neo4j/logs:/logs neo4j:3.1.2
+
+SSD
+	sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs neo4j:3.1.2
+
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs --volume=/media/tiagoooliveira/sda4/databases/neo4j/plugins:/plugins neo4j:3.2.5
+
+
+Easy load files (with docker internally)
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs --volume=/media/tiagoooliveira/sda4/databases/neo4j/plugins:/plugins -v /media/tiagoooliveira/sda4/databases/neo4j/import:/var/lib/neo4j/import neo4j:3.2.5
+
+++Memory && commit allowed
+sudo docker run --rm --publish=7474:7474 --publish=7687:7687 --volume=/media/tiagoooliveira/sda4/databases/neo4j/data:/data --volume=/media/tiagoooliveira/sda4/databases/neo4j/logs:/logs --volume=/media/tiagoooliveira/sda4/databases/neo4j/plugins:/plugins -v /media/tiagoooliveira/sda4/databases/neo4j/import:/var/lib/neo4j/import -e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* -e NEO4J_dbms_memory_heap_maxSize=4g neo4j:3.2.5
+
+
+user neo4j
+pwd neo4jj4neo
+
+
+sudo docker run -t -i neo4j:3.1.2 /bin/bash
+
+plugins
+	wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.2.3.5/apoc-3.2.3.5-all.jar
+	docker run --rm -e NEO4J_AUTH=none -p 7474:7474 -v $PWD/plugins:/plugins -p 7687:7687 neo4j:3.2.5
+
+	https://github.com/neo4j-contrib/neo4j-apoc-procedures#datetime-support
+
+
+/var/lib/neo4j/conf
+	cat neo4j.conf
+
+
+Path SSD
+/media/tiagoooliveira/sda4/
+
+Tutorial: Neo4j and Python for Dummies - PyData Singapore
+	https://www.youtube.com/watch?v=6nQh4HVLqUY
+
+
+http://neo4j.com/docs/api/python-driver/current/
+	For the most up-to-date version (possibly unstable), use:
+	pip install git+https://github.com/neo4j/neo4j-python-driver.git#egg=neo4j-driver
+
+
+
+
+USING PERIODIC COMMIT 300
+LOAD CSV WITH HEADERS FROM 'https://data.seattle.gov/api/views/ez9f-hxhs/rows.csv' AS line 
+CREATE (:FireCall {address:line.`Address`,type:line.`Type`,datetime:line.`Datetime`,
+lat:toFloat(line.`Latitude`),long: toFloat(line.`Longitude`),
+report:line.`Report`,location:line.`Location`,
+incidentnumber:line.`Incident Number`})
+#Added 205855 labels, created 205855 nodes, set 1233823 properties, completed after 18400 ms.
+
+LOAD CSV WITH HEADERS FROM 'https://data.seattle.gov/api/views/ez9f-hxhs/rows.csv' AS line 
+CREATE (:FireCall {address:line.`Address`,type:line.`Type`,datetime:apoc.date.parse(line.`Datetime`,['s'],['yyyy/MM/dd HH/mm/ss']),
+lat:toFloat(line.`Latitude`),long: toFloat(line.`Longitude`),
+report:line.`Report`,location:line.`Location`,
+incidentnumber:line.`Incident Number`})
+
+
+https://www.npmjs.com/package/neo4j-graphql-js
+
+
+from neo4j.v1 import GraphDatabase
+    ...: 
+    ...: uri = "bolt://localhost:7687"
+    ...: driver = GraphDatabase.driver(uri, auth=("neo4j", "neo4jj4neo"))
+    ...: 
+    ...: def print_friends_of2(name):
+    ...:     with driver.session() as session:
+    ...:         with session.begin_transaction() as tx:
+    ...:             for record in tx.run("MATCH (a:Person)-[:KNOWS*..2]->(f) "
+    ...:                                  "WHERE a.name = {name} "
+    ...:                                  "RETURN f.name", name=name):
+    ...:                 print(record["f.name"])
+    ...:                 
+
+
+
+CREATE (n:Person { name: 'Alice', born: 1984 })
+
+MATCH (a:Person),(b:Person)
+WHERE a.name = 'Alice' AND b.born = 1953
+CREATE (a)-[r:KNOWS]->(b)
+RETURN r
+
+MATCH (a:Person),(b:Person)
+WHERE a.born = 1953 AND b.born = 1950
+CREATE (a)-[r:KNOWS]->(b)
+RETURN r
+
+MATCH (a:Person),(b:Person)
+WHERE a.born = 1950 AND b.born = 1942
+CREATE (a)-[r:KNOWS]->(b)
+RETURN r
+
+
+TimeSeries Analysis
+	https://www.graphgrid.com/modeling-time-series-data-with-neo4j/
+	https://data.seattle.gov/Public-Safety/Fire-calls-2016/ez9f-hxhs
+	https://data.seattle.gov/api/views/ez9f-hxhs/rows.csv
+
+	https://www.kaggle.com/datasets?search=bitcoin
+	https://www.kaggle.com/jessevent/all-crypto-currencies	
+	https://www.kaggle.com/bigquery/bitcoin-blockchain
+
+	https://www.kaggle.com/tiagoooliveira/visualizing-daily-bitcoin-recipients-a203c2/edit?unified=1
+	https://github.com/cobookman/blockchainToAvro
+
+
+https://neo4j.com/blog/dark-side-neo4j-worst-practices/
+
+https://www.physionet.org/
+
+https://www.physionet.org/physiobank/
+https://www.physionet.org/physiobank/database/
+
+TImeSeries RNN
+https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
+
+Neo4j Traversal Framework - 
+	https://github.com/TIAGOOOLIVEIRA/python-embedded
+	https://neo4j.com/docs/java-reference/current/tutorial-traversal/
+
+
+https://www.graphgrid.com/modeling-time-series-data-with-neo4j/
+	“How granular do I really need to make this to efficiently work with and expose the time-based data being analyzed?” and “Do I need to generate all time nodes down to the desired precision level?” 
+
+
+Model this structure in a very granular graph
+	https://www.physionet.org/physiobank/database/challenge/2011/
+		These challenge data are standard 12-lead ECG recordings (leads I, II, II, aVR, aVL,aVF, V1, V2, V3, V4, V5, and V6) with full diagnostic bandwidth (0.05 through 100 Hz). The leads are recorded simultaneously for a minimum of 10 seconds; each lead is sampled at 500 Hz with 16-bit resolution.
+		
+	https://www.physionet.org/challenge/2011/api/java-standalone.shtml
+		****ChallengeEntry.java read dump object 
+
+https://www.kdnuggets.com/2015/12/anomaly-detection-predictive-maintenance-time-series-analysis.html
+https://files.knime.com/sites/default/files/inline-images/Anomaly_Detection_Time_Series_final.pdf
+
+https://www.linkedin.com/in/rosaria
+
+
+https://github.com/neo4j/docker-neo4j/issues/72	
+	I ran the docker with this: docker run -d --name neo4j --publish=7474:7474 --volume=$HOME/neo4j/data:/data --env=NEO4J_dbms_memory_pagecache_size=2G --env=NEO4J_dbms_memory_heap_maxsize=4G neo4j. The container runs but the heap size is still 512M.
+
+	https://github.com/neo4j/docker-neo4j/blob/master/src/2.3/docker-entrypoint.sh#L22
+
+use NEO4J_CACHE_MEMORY and NEO4J_HEAP_MEMORY instead of NEO4J_dbms_memory_pagecache_size and NEO4J_dbms_memory_heap_maxSize
+
+This described in the 2.3 manual: https://neo4j.com/developer/docker-23/
+
+Time Series Analysis
+	http://archive.ics.uci.edu/ml/machine-learning-databases/synthetic_control-mld/
+
+
+https://hub.docker.com/r/pelirrojo/neo4j-and-graphaware-framework/
+
+TIME SERIES - Autoencoders, LSTM
+	http://rickyhan.com/jekyll/update/2017/09/14/autoencoders.html
